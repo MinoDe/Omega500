@@ -23,16 +23,7 @@
             "hit": new Ω.Sound("res/audio/sfx_hit", 1)
         },
 
-        words: [
-            "cursed", "anguish", "frustration", "jumping", "triumph", "crazed", "elated", "wizard",
-            "castle", "inside", "drumroll"],
-        curWord: "",
-        nextWord: "",
-        curIdx: 0,
-
         init: function (x, y, screen) {
-            this.curWord = this.chooseWord();
-            this.nextWord = this.chooseWord();
             this._super(x, y);
             this.screen = screen;
             this.state = new Ω.utils.State("BORN");
@@ -40,6 +31,7 @@
 
         tick: function () {
             this.state.tick();
+
             switch (this.state.get()) {
                 case "BORN":
                     this.state.set("CRUISING");
@@ -56,10 +48,6 @@
                     var oldy = this.y;
                     this.ac = Math.min(this.ac + this.gravityAc, this.maxGravity);
                     this.y = Math.max(-40, this.y + this.ac);
-
-                    if (Ω.input.pressed("jump")) {
-                       //this.ac = this.jumpAc;
-                    }
 
                     this.handleKeys();
 
@@ -80,6 +68,12 @@
 
         handleKeys: function () {
             if (Ω.input.lastKey) {
+                if (String.fromCharCode(Ω.input.lastKey).toLowerCase() === 'p') {
+                }
+                else {
+                    this.ac = -7;
+                }
+                /*
                 if (String.fromCharCode(Ω.input.lastKey).toLowerCase() === this.curWord[this.curIdx]){
                     this.ac = -7;
                     this.curIdx++;
@@ -89,13 +83,10 @@
                         this.nextWord = this.chooseWord();
                     }
                 }
+                */
                 Ω.input.lastKey = null;
             }
 
-        },
-
-        chooseWord: function () {
-            return this.words[(Math.random() * (this.words.length)) | 0];
         },
 
         setColor: function (color) {
@@ -124,27 +115,6 @@
                 "bird" + this.color + "_" + Ω.utils.toggle(this.flapping, 3),
                 this.x - 11,
                 this.y - 17);
-
-            //c.fillStyle = "green";
-            //c.fillRect(this.x, this.y, this.w, this.h);
-
-            c.font = "20pt monospace";
-
-            c.fillStyle = "rgba(0, 0, 0, 0.4)";
-            c.fillRect(0, 0, gfx.w, 70);
-
-            var w = gfx.w / 2,
-                ww = this.curWord.length * 17 / 2,
-                ww2 = this.nextWord.length * 17 / 2;
-
-            for (var i = 0; i < this.curWord.length; i++) {
-                var font = i === this.curIdx ? this.font2 : this.font;
-                font.write(gfx, this.curWord[i], w - ww + (i * 17), 10);
-            }
-
-            for (i = 0; i < this.nextWord.length; i++) {
-                this.font.write(gfx, this.nextWord[i], w - ww2 + (i * 17), 40);
-            }
 
         }
     });
