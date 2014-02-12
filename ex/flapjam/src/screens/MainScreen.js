@@ -19,7 +19,7 @@
 		m_state_dash: {"vertical_position": 0},
 		explore: 0.00,
 		action_to_perform: "do_nothing",
-		resolution: 2,
+		resolution: 5,
 		alpha_QL: 0.7,
 
 		
@@ -32,12 +32,14 @@
 
 		init: function () {
 			this.reset();
-			console.log("INIT**********************");
+			console.log("**** **** INIT **** ****");
 			this.Q = {};
 
-			for (var i = 0; i <= 400/this.resolution; i++) {
+			for (var i = 0; i < 400/this.resolution; i++) {
 				this.Q[i] = {"click": 0, "do_nothing": 0};
 			}
+
+			console.log(this.Q);
 		},
 
 		reset: function () {
@@ -99,8 +101,6 @@
 					valid = true;
 					reward = -100;
 
-					console.log("Dying... : " + this.bird.y);
-
 					break;
 
 
@@ -115,17 +115,11 @@
 					break;
 			}
 
-
-			if ( !valid ) {
-				console.log("Invalid Iteration...");
-			}
-
-
 			if (valid) {
 
 				// Step 3: Update Q(S, A)
-				var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / 5));
-				var state_dash_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state_dash.vertical_position / 5));
+				var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / this.resolution));
+				var state_dash_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state_dash.vertical_position / this.resolution));
 
 				var click_v = this.Q[state_dash_bin]["click"];
 				var do_nothing_v = this.Q[state_dash_bin]["do_nothing"]
@@ -134,10 +128,10 @@
 				var Q_s_a = this.Q[state_bin][this.action_to_perform];
 				this.Q[state_bin][this.action_to_perform] = Q_s_a + this.alpha_QL * (reward + V_s_dash_a_dash - Q_s_a);
 
-				//console.log(this.Q[state_bin][this.action_to_perform]);
+				//console.log("state_bin:" + state_bin + " state_dash_bin: " + state_dash_bin);
 
 				// Step 4: S <- S'
-				this.m_state = this.m_state_dash;
+				this.m_state = clone(this.m_state_dash);
 	
 			
 				// Step 1: Select and perform Action A
@@ -145,7 +139,7 @@
 					this.action_to_perform = Ω.utils.rand(2) == 0 ? "click" : "do_nothing";
 				}
 				else {
-					var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / 5));
+					var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / this.resolution));
 					var click_v = this.Q[state_bin]["click"];
 					var do_nothing_v = this.Q[state_bin]["do_nothing"]
 					this.action_to_perform = click_v > do_nothing_v ? "click" : "do_nothing";
@@ -324,3 +318,13 @@
 	window.MainScreen = MainScreen;
 
 }(window.Ω));
+
+
+function clone(obj) {
+    if (null == obj || "object" != typeof obj) return obj;
+    var copy = obj.constructor();
+    for (var attr in obj) {
+        if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr];
+    }
+    return copy;
+}
