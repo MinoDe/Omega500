@@ -47,7 +47,7 @@
                     }
                     var oldy = this.y;
                     this.ac = Math.min(this.ac + this.gravityAc, this.maxGravity);
-                    this.y = Math.max(-40, this.y + this.ac);
+                    this.y = Math.max(5, this.y + this.ac);
 
                     this.handleKeys();
 
@@ -66,9 +66,16 @@
             }
         },
 
+
+        performJump: function () {
+            this.ac = -7;
+        },
+
+
         handleKeys: function () {
             if (Ω.input.lastKey) {
                 if (String.fromCharCode(Ω.input.lastKey).toLowerCase() === 'p') {
+                    a = a;
                 }
                 else {
                     this.ac = -7;

@@ -4,7 +4,7 @@
 
 	var MainScreen = Ω.Screen.extend({
 
-		speed: 3,
+		speed:  .1,
 		bird: null,
 		pipes: null,
 
@@ -14,6 +14,15 @@
 		bg: 0,
 		bgOffset: 0,
 
+		
+		m_state: {"vertical_position": 0},
+		m_state_dash: {"vertical_position": 0},
+		explore: 0.00,
+		action_to_perform: "do_nothing",
+		resolution: 2,
+		alpha_QL: 0.7,
+
+		
 		sounds: {
 			"point": new Ω.Sound("res/audio/sfx_point", 1)
 		},
@@ -24,7 +33,11 @@
 		init: function () {
 			this.reset();
 			console.log("INIT**********************");
-			this.Q = 0;
+			this.Q = {};
+
+			for (var i = 0; i <= 400/this.resolution; i++) {
+				this.Q[i] = {"click": 0, "do_nothing": 0};
+			}
 		},
 
 		reset: function () {
@@ -54,20 +67,43 @@
 			this.state.tick();
 			this.bird.tick();
 
+			var valid = false;
+			var reward = 0;
+					
 			switch (this.state.get()) {
 				case "BORN":
 					this.state.set("RUNNING");
 					this.bird.state.set("CRUSING");
 					break;
+
+
 				case "RUNNING":
 					if (this.state.first()) {
 						this.bird.state.set("RUNNING");
 					}
 					this.tick_RUNNING();
+
+					// Step 2: Observe Reward r and State S'
+					this.m_state_dash.vertical_position = this.bird.y;
+					valid = true;
+					reward = 0;
+					
 					break;
+
+
 				case "DYING":
 					this.state.set("GAMEOVER");
+
+					// Step 2: Observe Reward r and State S'
+					this.m_state_dash.vertical_position = this.bird.y;
+					valid = true;
+					reward = -100;
+
+					console.log("Dying... : " + this.bird.y);
+
 					break;
+
+
 				case "GAMEOVER":
 					if (this.state.first()) {
 						if (this.score > window.game.best) {
@@ -79,28 +115,49 @@
 					break;
 			}
 
-			// Q Learning State Machine
-			switch (this.state.get()) {
-				case "BORN":
-					//console.log("BORN");
-					break;
-				case "RUNNING":
-					if (this.state.first()) {
-						console.log("RUNNING");
-						console.log(this.Q);
-					}
-					this.Q += 1;
-					break;
-				case "DYING":
-					//console.log("DYING");
-					break;
-				case "GAMEOVER":
-					//console.log("GAMEOVER");
-					break;
+
+			if ( !valid ) {
+				console.log("Invalid Iteration...");
 			}
 
-			//console.log(this.pipes[0]);
-			//console.log(this.bird.x);
+
+			if (valid) {
+
+				// Step 3: Update Q(S, A)
+				var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / 5));
+				var state_dash_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state_dash.vertical_position / 5));
+
+				var click_v = this.Q[state_dash_bin]["click"];
+				var do_nothing_v = this.Q[state_dash_bin]["do_nothing"]
+				var V_s_dash_a_dash = Math.max(click_v, do_nothing_v);
+
+				var Q_s_a = this.Q[state_bin][this.action_to_perform];
+				this.Q[state_bin][this.action_to_perform] = Q_s_a + this.alpha_QL * (reward + V_s_dash_a_dash - Q_s_a);
+
+				//console.log(this.Q[state_bin][this.action_to_perform]);
+
+				// Step 4: S <- S'
+				this.m_state = this.m_state_dash;
+	
+			
+				// Step 1: Select and perform Action A
+				if (Math.random() < this.explore) {
+					this.action_to_perform = Ω.utils.rand(2) == 0 ? "click" : "do_nothing";
+				}
+				else {
+					var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / 5));
+					var click_v = this.Q[state_bin]["click"];
+					var do_nothing_v = this.Q[state_bin]["do_nothing"]
+					this.action_to_perform = click_v > do_nothing_v ? "click" : "do_nothing";
+				}
+
+				if (this.action_to_perform == "click") {
+					this.bird.performJump();
+				}
+
+			}
+
+
 
 			if (this.shake && !this.shake.tick()) {
 				this.shake = null;
