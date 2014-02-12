@@ -4,7 +4,7 @@
 
 	var MainScreen = Ω.Screen.extend({
 
-		speed:  .1,
+		speed:  10,
 		bird: null,
 		pipes: null,
 
@@ -120,6 +120,10 @@
 				// Step 3: Update Q(S, A)
 				var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / this.resolution));
 				var state_dash_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state_dash.vertical_position / this.resolution));
+				state_bin = Math.max(0, state_bin);
+				state_dash_bin = Math.max(0, state_dash_bin);
+				
+				console.log("state_bin:" + state_bin + " state_dash_bin: " + state_dash_bin);
 
 				var click_v = this.Q[state_dash_bin]["click"];
 				var do_nothing_v = this.Q[state_dash_bin]["do_nothing"]
@@ -128,7 +132,6 @@
 				var Q_s_a = this.Q[state_bin][this.action_to_perform];
 				this.Q[state_bin][this.action_to_perform] = Q_s_a + this.alpha_QL * (reward + V_s_dash_a_dash - Q_s_a);
 
-				//console.log("state_bin:" + state_bin + " state_dash_bin: " + state_dash_bin);
 
 				// Step 4: S <- S'
 				this.m_state = clone(this.m_state_dash);
@@ -140,6 +143,7 @@
 				}
 				else {
 					var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / this.resolution));
+					state_bin = Math.max(0, state_bin);
 					var click_v = this.Q[state_bin]["click"];
 					var do_nothing_v = this.Q[state_bin]["do_nothing"]
 					this.action_to_perform = click_v > do_nothing_v ? "click" : "do_nothing";
