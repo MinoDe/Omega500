@@ -7,7 +7,7 @@
         h: 15,
 
         ac: 0,
-        jumpAc: -4,
+        jumpAc: -7,
         maxGravity: 8,
         gravityAc: 0.4,
 
@@ -42,7 +42,7 @@
                     break;
                 case "RUNNING":
                     if (this.state.first()) {
-                        this.ac = this.jumpAc + this.jumpAc;
+                        this.ac = this.jumpAc;
                         this.flapping = 75;
                     }
                     var oldy = this.y;
@@ -68,7 +68,7 @@
 
 
         performJump: function () {
-            this.ac = -7;
+            this.ac = this.jumpAc;
         },
 
 
@@ -78,11 +78,11 @@
                     a = a;
                 }
                 else {
-                    this.ac = -7;
+                    this.ac = this.jumpAc;
                 }
                 /*
                 if (String.fromCharCode(Ω.input.lastKey).toLowerCase() === this.curWord[this.curIdx]){
-                    this.ac = -7;
+                    this.ac = jumpAc;
                     this.curIdx++;
                     if (this.curIdx > this.curWord.length - 1) {
                         this.curIdx = 0;

@@ -4,7 +4,7 @@
 
 	var MainScreen = Ω.Screen.extend({
 
-		speed:  10,
+		speed:  3,
 		bird: null,
 		pipes: null,
 
@@ -14,15 +14,6 @@
 		bg: 0,
 		bgOffset: 0,
 
-		
-		m_state: {"vertical_position": 0},
-		m_state_dash: {"vertical_position": 0},
-		explore: 0.00,
-		action_to_perform: "do_nothing",
-		resolution: 5,
-		alpha_QL: 0.7,
-
-		
 		sounds: {
 			"point": new Ω.Sound("res/audio/sfx_point", 1)
 		},
@@ -30,10 +21,19 @@
 		shake: null,
 		flash: null,
 
+
+		
+		m_state: {"vertical_position": 0},
+		m_state_dash: {"vertical_position": 0},
+		explore: 0.00,
+		action_to_perform: "do_nothing",
+		resolution: 2,
+		alpha_QL: 0.7,
+
 		init: function () {
 			this.reset();
 			console.log("**** **** INIT **** ****");
-			this.Q = {};
+			this.Q = new Array();
 
 			for (var i = 0; i < 400/this.resolution; i++) {
 				this.Q[i] = {"click": 0, "do_nothing": 0};
@@ -41,6 +41,7 @@
 
 			console.log(this.Q);
 		},
+
 
 		reset: function () {
 			this.score = 0;
@@ -65,6 +66,7 @@
 			this.setHeight(2);
 		},
 
+
 		tick: function () {
 			this.state.tick();
 			this.bird.tick();
@@ -88,8 +90,8 @@
 					// Step 2: Observe Reward r and State S'
 					this.m_state_dash.vertical_position = this.bird.y;
 					valid = true;
-					reward = 0;
-					
+					reward = 1;
+
 					break;
 
 
@@ -99,7 +101,7 @@
 					// Step 2: Observe Reward r and State S'
 					this.m_state_dash.vertical_position = this.bird.y;
 					valid = true;
-					reward = -100;
+					reward = -1000;
 
 					break;
 
@@ -110,12 +112,28 @@
 							window.game.best = this.score;
 						}
 					}
+					
+					console.log("Died at location: " + this.bird.y);
+					//for (var i = 80; i < 90; i++) {
+					//	console.log( "i: " + i + ", click: " + this.Q[i]["click"] + ", do_nothing: " +this.Q[i]["do_nothing"] );
+					//}
+
 					this.reset();
 					this.state.set("BORN");
 					break;
 			}
 
+			console.log("Reward: " + reward);
+			var state_dash_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state_dash.vertical_position / this.resolution));
+			
+
+
 			if (valid) {
+
+				//for (var i = 0; i < 6; i++) {
+				//	console.log("i: " + i + ", dir: " + this.pipes[i].dir + ",  \ty: ", this.pipes[i].y);
+				//}
+				//console.log("--");
 
 				// Step 3: Update Q(S, A)
 				var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / this.resolution));
@@ -123,7 +141,8 @@
 				state_bin = Math.max(0, state_bin);
 				state_dash_bin = Math.max(0, state_dash_bin);
 				
-				console.log("state_bin:" + state_bin + " state_dash_bin: " + state_dash_bin);
+				console.log("S: \t\t" + state_bin);
+				console.log("S': \t" + state_dash_bin);
 
 				var click_v = this.Q[state_dash_bin]["click"];
 				var do_nothing_v = this.Q[state_dash_bin]["do_nothing"]
@@ -133,10 +152,21 @@
 				this.Q[state_bin][this.action_to_perform] = Q_s_a + this.alpha_QL * (reward + V_s_dash_a_dash - Q_s_a);
 
 
+				for (var i = 90; i < 95; i++) {
+					console.log( "i: " + i + ", click: " + this.Q[i]["click"] + ", do_nothing: " +this.Q[i]["do_nothing"] );
+				}
+
+				if (this.Q[state_bin][this.action_to_perform] < 0) {
+					console.log(state_bin);
+					console.log(this.Q[state_bin][this.action_to_perform]);
+				}
+
+
 				// Step 4: S <- S'
 				this.m_state = clone(this.m_state_dash);
-	
-			
+
+				console.log("--");
+
 				// Step 1: Select and perform Action A
 				if (Math.random() < this.explore) {
 					this.action_to_perform = Ω.utils.rand(2) == 0 ? "click" : "do_nothing";
@@ -148,6 +178,8 @@
 					var do_nothing_v = this.Q[state_bin]["do_nothing"]
 					this.action_to_perform = click_v > do_nothing_v ? "click" : "do_nothing";
 				}
+
+				console.log("action performed: " + this.action_to_perform);
 
 				if (this.action_to_perform == "click") {
 					this.bird.performJump();
@@ -165,6 +197,7 @@
 			}
 
 		},
+
 
 		tick_RUNNING: function () {
 
@@ -196,6 +229,7 @@
 
 		setHeight: function (group) {
 			var h = (Math.random() * 160 | 0) + 130;
+			h = 130;
 			this.pipes.filter(function (p) {
 				return p.group === group;
 			}).forEach(function (p) {
