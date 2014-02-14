@@ -27,7 +27,7 @@
 		m_state_dash: {"vertical_distance": 0, "horizontal_distance": 0},
 		explore: 0.00,
 		action_to_perform: "do_nothing",
-		resolution: 1,
+		resolution: 4,
 		alpha_QL: 0.7,
 		vertical_dist_range: [-350, 190],
 		horizontal_dist_range: [0, 180],
@@ -327,7 +327,6 @@
 
 		setHeight: function (group) {
 			var h = (Math.random() * 160 | 0) + 130;
-			h = 290;
 			this.pipes.filter(function (p) {
 				return p.group === group;
 			}).forEach(function (p) {
