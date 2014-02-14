@@ -4,7 +4,7 @@
 
 	var MainScreen = Ω.Screen.extend({
 
-		speed:  3,
+		speed:  2,
 		bird: null,
 		pipes: null,
 
@@ -23,23 +23,43 @@
 
 
 		
-		m_state: {"vertical_position": 0},
-		m_state_dash: {"vertical_position": 0},
+		m_state: {"vertical_distance": 0, "horizontal_distance": 0},
+		m_state_dash: {"vertical_distance": 0, "horizontal_distance": 0},
 		explore: 0.00,
 		action_to_perform: "do_nothing",
-		resolution: 2,
+		resolution: 1,
 		alpha_QL: 0.7,
+		vertical_dist_range: [-350, 190],
+		horizontal_dist_range: [0, 180],
+
+
+		min_diff: 9999, 
+		max_diff: -9999, 
 
 		init: function () {
 			this.reset();
 			console.log("**** **** INIT **** ****");
-			this.Q = new Array();
 
-			for (var i = 0; i < 400/this.resolution; i++) {
-				this.Q[i] = {"click": 0, "do_nothing": 0};
+			// Vertical Distance
+			this.Q = new Array();
+			for (var vert_dist = 0; vert_dist < (this.vertical_dist_range[1] - this.vertical_dist_range[0])/this.resolution; vert_dist++) {
+				this.Q[vert_dist] = new Array();
+
+				// Horizontal Distance
+				for (var hori_dist = 0; hori_dist < (this.horizontal_dist_range[1] - this.horizontal_dist_range[0])/this.resolution; hori_dist++) {
+					this.Q[vert_dist][hori_dist] = {"click": 0, "do_nothing": 0};
+				}
 			}
 
 			console.log(this.Q);
+
+			// Old Q Init
+			//this.Q = new Array();
+			//for (var i = 0; i < 400/this.resolution; i++) {
+			//	this.Q[i] = {"click": 0, "do_nothing": 0};
+			//}
+			//console.log(this.Q);
+
 		},
 
 
@@ -87,8 +107,7 @@
 					}
 					this.tick_RUNNING();
 
-					// Step 2: Observe Reward r and State S'
-					this.m_state_dash.vertical_position = this.bird.y;
+					// Step 2: Observe Reward R
 					valid = true;
 					reward = 1;
 
@@ -98,8 +117,7 @@
 				case "DYING":
 					this.state.set("GAMEOVER");
 
-					// Step 2: Observe Reward r and State S'
-					this.m_state_dash.vertical_position = this.bird.y;
+					// Step 2: Observe Reward R
 					valid = true;
 					reward = -1000;
 
@@ -113,7 +131,7 @@
 						}
 					}
 					
-					console.log("Died at location: " + this.bird.y);
+					//console.log("Died at location: " + this.bird.y);
 					//for (var i = 80; i < 90; i++) {
 					//	console.log( "i: " + i + ", click: " + this.Q[i]["click"] + ", do_nothing: " +this.Q[i]["do_nothing"] );
 					//}
@@ -123,63 +141,143 @@
 					break;
 			}
 
-			console.log("Reward: " + reward);
-			var state_dash_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state_dash.vertical_position / this.resolution));
-			
+			//console.log("Reward: " + reward);
+
+			// To find vertical dist limits
+			//for (var i = 0; i < 6; i++) {
+			//	if (this.pipes[i].dir == "up") {
+			//		var diff = (this.bird.y - this.pipes[i].y);
+			//		this.min_diff = Math.min(diff, this.min_diff);
+			//		this.max_diff = Math.max(diff, this.max_diff);
+			//		console.log(this.pipes[i].y);
+			//	}
+			//}
+			//console.log("(" + this.min_diff + ", " + this.max_diff + ")");
+
 
 
 			if (valid) {
+
+				// Step 2: Observe State S'
+				var horizontal_distance = 9999;
+				var vertical_distance = 9999;
+
+				for (var i = 0; i < 6; i++) {
+					if (this.pipes[i].dir == "up" && this.pipes[i].x + this.pipes[i].w >= this.bird.x) {
+						var diff = (this.pipes[i].x + this.pipes[i].w - this.bird.x);
+						if (horizontal_distance > diff) {
+							horizontal_distance = diff;
+							vertical_distance = (this.bird.y - this.pipes[i].y);
+						}
+					}
+				}
+
+				this.m_state_dash.vertical_distance = vertical_distance;
+				this.m_state_dash.horizontal_distance = horizontal_distance;
+
+				
+				//console.log("Vertical: \t" + vertical_distance);
+				//console.log("Horizontal:\t" + horizontal_distance);
+				//console.log("--");
 
 				//for (var i = 0; i < 6; i++) {
 				//	console.log("i: " + i + ", dir: " + this.pipes[i].dir + ",  \ty: ", this.pipes[i].y);
 				//}
 				//console.log("--");
 
-				// Step 3: Update Q(S, A)
-				var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / this.resolution));
-				var state_dash_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state_dash.vertical_position / this.resolution));
-				state_bin = Math.max(0, state_bin);
-				state_dash_bin = Math.max(0, state_dash_bin);
-				
-				console.log("S: \t\t" + state_bin);
-				console.log("S': \t" + state_dash_bin);
 
-				var click_v = this.Q[state_dash_bin]["click"];
-				var do_nothing_v = this.Q[state_dash_bin]["do_nothing"]
+				// Step 3: Update Q(S, A)
+				var state_bin_v = 
+				Math.max( 
+					Math.min ( 
+						Math.floor((this.vertical_dist_range[1]-this.vertical_dist_range[0]-1)/this.resolution), 
+						Math.floor( (this.m_state.vertical_distance - this.vertical_dist_range[0])/this.resolution )
+					), 
+					0
+				);
+				
+				var state_bin_h = 
+				Math.max( 
+					Math.min ( 
+						Math.floor((this.horizontal_dist_range[1]-this.horizontal_dist_range[0]-1)/this.resolution), 
+						Math.floor( (this.m_state.horizontal_distance - this.horizontal_dist_range[0])/this.resolution )
+					), 
+					0
+				);
+
+
+				var state_dash_bin_v = 
+				Math.max( 
+					Math.min ( 
+						Math.floor((this.vertical_dist_range[1]-this.vertical_dist_range[0]-1)/this.resolution), 
+						Math.floor( (this.m_state_dash.vertical_distance - this.vertical_dist_range[0])/this.resolution )
+					), 
+					0
+				);
+				
+				var state_dash_bin_h = 
+				Math.max( 
+					Math.min ( 
+						Math.floor((this.horizontal_dist_range[1]-this.horizontal_dist_range[0]-1)/this.resolution), 
+						Math.floor( (this.m_state_dash.horizontal_distance - this.horizontal_dist_range[0])/this.resolution )
+					), 
+					0
+				);
+				
+
+				//console.log("S: V - " + state_bin_v + ", H - " + state_bin_h);
+				//console.log("S' V - " + state_dash_bin_v + ", H - " + state_dash_bin_h);
+				//console.log("---");
+
+
+				var click_v = this.Q[state_dash_bin_v][state_dash_bin_h]["click"];
+				var do_nothing_v = this.Q[state_dash_bin_v][state_dash_bin_h]["do_nothing"]
 				var V_s_dash_a_dash = Math.max(click_v, do_nothing_v);
 
-				var Q_s_a = this.Q[state_bin][this.action_to_perform];
-				this.Q[state_bin][this.action_to_perform] = Q_s_a + this.alpha_QL * (reward + V_s_dash_a_dash - Q_s_a);
+				var Q_s_a = this.Q[state_bin_v][state_bin_h][this.action_to_perform];
+				this.Q[state_bin_v][state_bin_h][this.action_to_perform] = 
+					Q_s_a + this.alpha_QL * (reward + V_s_dash_a_dash - Q_s_a);
 
 
-				for (var i = 90; i < 95; i++) {
-					console.log( "i: " + i + ", click: " + this.Q[i]["click"] + ", do_nothing: " +this.Q[i]["do_nothing"] );
-				}
-
-				if (this.Q[state_bin][this.action_to_perform] < 0) {
-					console.log(state_bin);
-					console.log(this.Q[state_bin][this.action_to_perform]);
-				}
+				//for (var i = 90; i < 95; i++) {
+				//	console.log( "i: " + i + ", click: " + this.Q[i]["click"] + ", do_nothing: " +this.Q[i]["do_nothing"] );
+				//}
 
 
 				// Step 4: S <- S'
 				this.m_state = clone(this.m_state_dash);
 
-				console.log("--");
+				//console.log("--");
 
 				// Step 1: Select and perform Action A
 				if (Math.random() < this.explore) {
 					this.action_to_perform = Ω.utils.rand(2) == 0 ? "click" : "do_nothing";
 				}
 				else {
-					var state_bin = Math.min(400/this.resolution-1, Math.floor(this.m_state.vertical_position / this.resolution));
-					state_bin = Math.max(0, state_bin);
-					var click_v = this.Q[state_bin]["click"];
-					var do_nothing_v = this.Q[state_bin]["do_nothing"]
+					var state_bin_v = 
+					Math.max( 
+						Math.min ( 
+							Math.floor((this.vertical_dist_range[1]-this.vertical_dist_range[0]-1)/this.resolution), 
+							Math.floor( (this.m_state.vertical_distance - this.vertical_dist_range[0])/this.resolution )
+						), 
+						0
+					);
+					
+					var state_bin_h = 
+					Math.max( 
+						Math.min ( 
+							Math.floor((this.horizontal_dist_range[1]-this.horizontal_dist_range[0]-1)/this.resolution), 
+							Math.floor( (this.m_state.horizontal_distance - this.horizontal_dist_range[0])/this.resolution )
+						), 
+						0
+					);
+
+					var click_v = this.Q[state_bin_v][state_bin_h]["click"];
+					var do_nothing_v = this.Q[state_bin_v][state_bin_h]["do_nothing"]
 					this.action_to_perform = click_v > do_nothing_v ? "click" : "do_nothing";
 				}
 
-				console.log("action performed: " + this.action_to_perform);
+				//console.log("action performed: " + this.action_to_perform);
 
 				if (this.action_to_perform == "click") {
 					this.bird.performJump();
@@ -229,7 +327,7 @@
 
 		setHeight: function (group) {
 			var h = (Math.random() * 160 | 0) + 130;
-			h = 130;
+			h = 290;
 			this.pipes.filter(function (p) {
 				return p.group === group;
 			}).forEach(function (p) {
