@@ -136,6 +136,8 @@
 					//	console.log( "i: " + i + ", click: " + this.Q[i]["click"] + ", do_nothing: " +this.Q[i]["do_nothing"] );
 					//}
 
+					this.printState();
+
 					this.reset();
 					this.state.set("BORN");
 					break;
@@ -294,6 +296,27 @@
 				this.flash = null;
 			}
 
+		},
+
+
+		printState: function () {
+
+			$("#debug").text("");
+			var debug_string = "";
+
+			// Vertical Distance
+			for (var vert_dist = 0; vert_dist < (this.vertical_dist_range[1] - this.vertical_dist_range[0])/this.resolution; vert_dist++) {
+				
+				// Horizontal Distance
+				for (var hori_dist = 0; hori_dist < (this.horizontal_dist_range[1] - this.horizontal_dist_range[0])/this.resolution; hori_dist++) {
+				
+					var debug_char = this.Q[vert_dist][hori_dist]["click"] > this.Q[vert_dist][hori_dist]["do_nothing"] ? 'c' : '-';
+					//$("#debug").append(debug_char);
+					debug_string = debug_string + debug_char;
+				}
+				debug_string = debug_string + "<br />";
+			}
+			$("#debug").append(debug_string);
 		},
 
 
